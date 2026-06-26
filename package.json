@@ -1,0 +1,47 @@
+{
+  "name": "weather-packing-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Full-stack weather app with AI-assisted packing recommendations for travelers.",
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm --workspace apps/api run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:migrate": "npm --workspace apps/api run db:migrate",
+    "db:studio": "npm --workspace apps/api run db:studio",
+    "validate:package": "node -e \"JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ok')\""
+  },
+  "keywords": [
+    "weather",
+    "travel",
+    "packing-checklist",
+    "nextjs",
+    "express",
+    "typescript",
+    "deepseek",
+    "prisma",
+    "sqlite"
+  ],
+  "author": "Igor Caldas",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
