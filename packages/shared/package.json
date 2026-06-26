@@ -1,0 +1,19 @@
+{
+  "name": "@weather-packing-assistant/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "echo \"Shared package dev mode not implemented yet\"",
+    "build": "echo \"Shared build not implemented yet\"",
+    "test": "echo \"Shared tests not implemented yet\"",
+    "lint": "echo \"Shared lint not implemented yet\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
