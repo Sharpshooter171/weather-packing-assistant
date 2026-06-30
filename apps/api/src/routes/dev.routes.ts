@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { buildDeterministicWeatherRecommendation } from "../services/deterministicWeatherEngine.js";
+import { getWeatherProviderResult } from "../services/weatherProvider.service.js";
 import { validateNormalizedWeatherSummary } from "../validators/normalizedWeatherSummary.validator.js";
 import { validateWeatherRequestInput } from "../validators/weatherRequest.validator.js";
 
@@ -29,4 +30,23 @@ devRouter.post("/interpret-weather-summary", (request, response) => {
   response.status(200).json({
     data: recommendation
   });
+});
+
+devRouter.post("/weather-provider", async (request, response, next) => {
+  try {
+    const validated = validateWeatherRequestInput(request.body);
+    const result = await getWeatherProviderResult(validated.location, validated.startDate, validated.endDate);
+
+    response.status(200).json({
+      data: {
+        location: result.location,
+        currentWeather: result.currentWeather,
+        forecast: result.forecast,
+        normalizedSummary: result.normalizedSummary,
+        deterministicRecommendation: result.deterministicRecommendation
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 });
