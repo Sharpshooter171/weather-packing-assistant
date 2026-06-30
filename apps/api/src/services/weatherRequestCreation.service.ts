@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { createWeatherRequest } from "../repositories/weatherRequest.repository.js";
 import { getWeatherProviderResult } from "./weatherProvider.service.js";
@@ -26,7 +26,6 @@ export async function createWeatherRequestFromProvider(input: {
     weatherProfileJson: deterministicRecommendation.weatherProfile as Prisma.InputJsonValue,
     travelInsightsJson: deterministicRecommendation.travelInsights as Prisma.InputJsonValue,
     packingChecklistJson: deterministicRecommendation.packingChecklist as Prisma.InputJsonValue,
-    aiRecommendationJson: Prisma.JsonNull,
     aiStatus
   });
 }
