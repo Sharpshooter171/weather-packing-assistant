@@ -1,6 +1,8 @@
+import type { Prisma } from "@prisma/client";
+
 export type AiStatus = "generated" | "fallback_used" | "disabled" | "not_requested";
 
-export type JsonObject = Record<string, unknown>;
+export type JsonValue = Prisma.InputJsonValue;
 
 export type CreateWeatherRequestData = {
   locationInput: string;
@@ -10,12 +12,12 @@ export type CreateWeatherRequestData = {
   longitude: number;
   startDate: Date;
   endDate: Date;
-  currentWeatherJson: JsonObject;
-  forecastJson: JsonObject;
-  weatherProfileJson: JsonObject;
-  travelInsightsJson: JsonObject;
-  packingChecklistJson: JsonObject;
-  aiRecommendationJson?: JsonObject | null;
+  currentWeatherJson: JsonValue;
+  forecastJson: JsonValue;
+  weatherProfileJson: JsonValue;
+  travelInsightsJson: JsonValue;
+  packingChecklistJson: JsonValue;
+  aiRecommendationJson?: JsonValue | null;
   aiStatus?: AiStatus;
 };
 
