@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { buildDeterministicWeatherRecommendation } from "../services/deterministicWeatherEngine.js";
+import type { NormalizedWeatherSummary } from "../types/weatherRules.types.js";
 import { validateWeatherRequestInput } from "../validators/weatherRequest.validator.js";
 
 export const devRouter = Router();
@@ -17,5 +19,13 @@ devRouter.post("/validate-weather-request", (request, response) => {
         useAi: validated.useAi
       }
     }
+  });
+});
+
+devRouter.post("/interpret-weather-summary", (request, response) => {
+  const recommendation = buildDeterministicWeatherRecommendation(request.body as NormalizedWeatherSummary);
+
+  response.status(200).json({
+    data: recommendation
   });
 });
