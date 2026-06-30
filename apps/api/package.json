@@ -11,10 +11,10 @@
     "test": "echo \"API tests not implemented yet\"",
     "lint": "echo \"API lint not implemented yet\"",
     "typecheck": "tsc --noEmit",
-    "db:generate": "prisma generate --schema prisma/schema.prisma",
-    "db:validate": "prisma validate --schema prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
-    "db:studio": "prisma studio --schema prisma/schema.prisma"
+    "db:generate": "DATABASE_URL=file:./dev.db prisma generate --schema prisma/schema.prisma",
+    "db:validate": "DATABASE_URL=file:./dev.db prisma validate --schema prisma/schema.prisma",
+    "db:migrate": "DATABASE_URL=file:./dev.db prisma migrate dev --schema prisma/schema.prisma",
+    "db:studio": "DATABASE_URL=file:./dev.db prisma studio --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
