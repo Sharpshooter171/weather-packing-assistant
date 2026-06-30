@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import { prisma } from "../db/prisma.js";
 import type {
   CreateWeatherRequestData,
@@ -6,11 +8,13 @@ import type {
 } from "../types/weatherRequest.types.js";
 
 export async function createWeatherRequest(data: CreateWeatherRequestData) {
+  const createData: Prisma.WeatherRequestCreateInput = {
+    aiStatus: "not_requested",
+    ...data
+  };
+
   return prisma.weatherRequest.create({
-    data: {
-      aiStatus: "not_requested",
-      ...data
-    }
+    data: createData
   });
 }
 
