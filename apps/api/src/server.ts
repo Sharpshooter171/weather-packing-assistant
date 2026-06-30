@@ -1,5 +1,7 @@
 import "dotenv/config";
 
+process.env.DATABASE_URL ??= "file:./dev.db";
+
 import { createApp } from "./app.js";
 
 const DEFAULT_PORT = 4000;
