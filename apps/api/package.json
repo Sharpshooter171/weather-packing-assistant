@@ -11,10 +11,13 @@
     "test": "echo \"API tests not implemented yet\"",
     "lint": "echo \"API lint not implemented yet\"",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "echo \"Prisma migrate not implemented yet\"",
-    "db:studio": "echo \"Prisma studio not implemented yet\""
+    "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:validate": "prisma validate --schema prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
+    "db:studio": "prisma studio --schema prisma/schema.prisma"
   },
   "dependencies": {
+    "@prisma/client": "^6.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2"
@@ -23,6 +26,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.2",
+    "prisma": "^6.1.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }
