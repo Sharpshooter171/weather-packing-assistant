@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { createWeatherRequest } from "../repositories/weatherRequest.repository.js";
 import { getWeatherProviderResult } from "./weatherProvider.service.js";
