@@ -28,7 +28,6 @@ export async function buildWeatherRequestPersistenceData(input: WeatherRequestWo
     weatherProfileJson: deterministicRecommendation.weatherProfile as Prisma.InputJsonValue,
     travelInsightsJson: deterministicRecommendation.travelInsights as Prisma.InputJsonValue,
     packingChecklistJson: deterministicRecommendation.packingChecklist as Prisma.InputJsonValue,
-    aiRecommendationJson: null,
     aiStatus
   };
 }
