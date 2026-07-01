@@ -1,4 +1,13 @@
+import type { ApiSuccess, WeatherRequest } from "../types/weather";
+
 const DEFAULT_API_BASE_URL = "http://localhost:4000";
+
+export type CreateWeatherRequestPayload = {
+  location: string;
+  startDate: string;
+  endDate: string;
+  useAi?: boolean;
+};
 
 export function getApiBaseUrl() {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL;
@@ -22,4 +31,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   return payload;
+}
+
+export function createWeatherRequest(payload: CreateWeatherRequestPayload) {
+  return apiFetch<ApiSuccess<WeatherRequest>>("/api/weather-requests", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
 }
