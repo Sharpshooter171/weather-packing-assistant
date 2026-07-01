@@ -1,8 +1,13 @@
+import { Prisma } from "@prisma/client";
 import { Router } from "express";
 
 import { AppError } from "../errors/AppError.js";
 import { mapWeatherRequestToApi } from "../mappers/weatherRequest.mapper.js";
-import { getWeatherRequestById, listWeatherRequests } from "../repositories/weatherRequest.repository.js";
+import {
+  deleteWeatherRequest,
+  getWeatherRequestById,
+  listWeatherRequests
+} from "../repositories/weatherRequest.repository.js";
 import { createWeatherRequestFromProvider } from "../services/weatherRequestCreation.service.js";
 import { validateWeatherRequestInput } from "../validators/weatherRequest.validator.js";
 
@@ -40,9 +45,7 @@ weatherRequestsRouter.get("/:id", async (request, response, next) => {
     const record = await getWeatherRequestById(request.params.id);
 
     if (!record) {
-      throw new AppError("WEATHER_REQUEST_NOT_FOUND", "Weather request was not found.", 404, {
-        id: request.params.id
-      });
+      throw createWeatherRequestNotFoundError(request.params.id);
     }
 
     response.status(200).json({
@@ -73,6 +76,31 @@ weatherRequestsRouter.post("/", async (request, response, next) => {
     next(error);
   }
 });
+
+weatherRequestsRouter.delete("/:id", async (request, response, next) => {
+  try {
+    await deleteWeatherRequest(request.params.id);
+
+    response.status(204).send();
+  } catch (error) {
+    if (isPrismaRecordNotFoundError(error)) {
+      next(createWeatherRequestNotFoundError(request.params.id));
+      return;
+    }
+
+    next(error);
+  }
+});
+
+function createWeatherRequestNotFoundError(id: string) {
+  return new AppError("WEATHER_REQUEST_NOT_FOUND", "Weather request was not found.", 404, {
+    id
+  });
+}
+
+function isPrismaRecordNotFoundError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
+}
 
 function parsePositiveInteger(value: unknown, defaultValue: number, maxValue: number) {
   if (value === undefined) return defaultValue;
