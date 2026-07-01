@@ -6,9 +6,13 @@ import { mapWeatherRequestToApi } from "../mappers/weatherRequest.mapper.js";
 import {
   deleteWeatherRequest,
   getWeatherRequestById,
-  listWeatherRequests
+  listWeatherRequests,
+  updateWeatherRequest
 } from "../repositories/weatherRequest.repository.js";
-import { createWeatherRequestFromProvider } from "../services/weatherRequestCreation.service.js";
+import {
+  buildWeatherRequestPersistenceData,
+  createWeatherRequestFromProvider
+} from "../services/weatherRequestCreation.service.js";
 import { validateWeatherRequestInput } from "../validators/weatherRequest.validator.js";
 
 export const weatherRequestsRouter = Router();
@@ -73,6 +77,39 @@ weatherRequestsRouter.post("/", async (request, response, next) => {
         : {})
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+weatherRequestsRouter.put("/:id", async (request, response, next) => {
+  try {
+    const existing = await getWeatherRequestById(request.params.id);
+
+    if (!existing) {
+      throw createWeatherRequestNotFoundError(request.params.id);
+    }
+
+    const validated = validateWeatherRequestInput(request.body);
+    const updateData = await buildWeatherRequestPersistenceData(validated);
+    const updated = await updateWeatherRequest(request.params.id, updateData);
+
+    response.status(200).json({
+      data: mapWeatherRequestToApi(updated),
+      ...(validated.useAi
+        ? {
+            warning: {
+              code: "AI_RECOMMENDATION_UNAVAILABLE",
+              message: "The packing checklist was generated using deterministic fallback rules."
+            }
+          }
+        : {})
+    });
+  } catch (error) {
+    if (isPrismaRecordNotFoundError(error)) {
+      next(createWeatherRequestNotFoundError(request.params.id));
+      return;
+    }
+
     next(error);
   }
 });
