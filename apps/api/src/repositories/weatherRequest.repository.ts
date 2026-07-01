@@ -40,6 +40,14 @@ export async function listWeatherRequests(filters: ListWeatherRequestsFilters = 
   });
 }
 
+export async function listAllWeatherRequestsForExport() {
+  return prisma.weatherRequest.findMany({
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+}
+
 export async function getWeatherRequestById(id: string) {
   return prisma.weatherRequest.findUnique({
     where: {
