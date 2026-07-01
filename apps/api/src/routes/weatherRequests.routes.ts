@@ -9,7 +9,7 @@ import {
   listWeatherRequests,
   updateWeatherRequest
 } from "../repositories/weatherRequest.repository.js";
-import { buildWeatherRequestsJsonExport } from "../services/export.service.js";
+import { buildWeatherRequestsCsvExport, buildWeatherRequestsJsonExport } from "../services/export.service.js";
 import {
   buildWeatherRequestPersistenceData,
   createWeatherRequestFromProvider
@@ -54,6 +54,20 @@ weatherRequestsRouter.get("/export.json", async (_request, response, next) => {
       .type("application/json")
       .setHeader("Content-Disposition", "attachment; filename=weather-requests.json")
       .json(exportData);
+  } catch (error) {
+    next(error);
+  }
+});
+
+weatherRequestsRouter.get("/export.csv", async (_request, response, next) => {
+  try {
+    const csv = await buildWeatherRequestsCsvExport();
+
+    response
+      .status(200)
+      .type("text/csv")
+      .setHeader("Content-Disposition", "attachment; filename=weather-requests.csv")
+      .send(csv);
   } catch (error) {
     next(error);
   }
