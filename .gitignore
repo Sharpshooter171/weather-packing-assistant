@@ -11,6 +11,9 @@ build/
 coverage/
 .turbo/
 
+# TypeScript incremental cache
+*.tsbuildinfo
+
 # Logs
 logs/
 *.log
@@ -36,6 +39,14 @@ apps/api/prisma/dev.db-journal
 
 # Prisma generated local artifacts
 node_modules/.prisma/
+
+# Local export artifacts
+weather-requests.json
+weather-requests.csv
+apps/api/weather-requests.json
+apps/api/weather-requests.csv
+apps/web/weather-requests.json
+apps/web/weather-requests.csv
 
 # OS files
 .DS_Store
