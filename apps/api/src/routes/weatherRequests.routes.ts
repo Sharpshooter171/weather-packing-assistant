@@ -9,6 +9,7 @@ import {
   listWeatherRequests,
   updateWeatherRequest
 } from "../repositories/weatherRequest.repository.js";
+import { buildWeatherRequestsJsonExport } from "../services/export.service.js";
 import {
   buildWeatherRequestPersistenceData,
   createWeatherRequestFromProvider
@@ -39,6 +40,20 @@ weatherRequestsRouter.get("/", async (request, response, next) => {
         count: records.length
       }
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+weatherRequestsRouter.get("/export.json", async (_request, response, next) => {
+  try {
+    const exportData = await buildWeatherRequestsJsonExport();
+
+    response
+      .status(200)
+      .type("application/json")
+      .setHeader("Content-Disposition", "attachment; filename=weather-requests.json")
+      .json(exportData);
   } catch (error) {
     next(error);
   }
