@@ -18,6 +18,7 @@
     "typecheck": "npm run typecheck --workspaces",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "clean:local": "rm -f weather-requests.json weather-requests.csv apps/api/weather-requests.json apps/api/weather-requests.csv apps/web/weather-requests.json apps/web/weather-requests.csv && find . -name '*.tsbuildinfo' -type f -delete",
     "db:migrate": "npm --workspace apps/api run db:migrate",
     "db:studio": "npm --workspace apps/api run db:studio",
     "validate:package": "node -e \"JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ok')\""
