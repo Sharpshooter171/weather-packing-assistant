@@ -1,3 +1,10 @@
+"use client";
+
+import { type FormEvent, useEffect, useState } from "react";
+
+import { createWeatherRequest } from "../services/apiClient";
+import type { ApiError, WeatherRequest } from "../types/weather";
+
 const backendFeatures = [
   "Weather API integration",
   "SQLite persistence with Prisma",
@@ -9,6 +16,44 @@ const backendFeatures = [
 const upcomingUiFeatures = ["Location search", "Current weather card", "5-day forecast", "Packing checklist"];
 
 export default function HomePage() {
+  const [location, setLocation] = useState("London");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [result, setResult] = useState<WeatherRequest | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const today = new Date();
+    const end = new Date(today);
+    end.setDate(today.getDate() + 4);
+
+    setStartDate(toDateInputValue(today));
+    setEndDate(toDateInputValue(end));
+  }, []);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await createWeatherRequest({
+        location,
+        startDate,
+        endDate,
+        useAi: false
+      });
+
+      setResult(response.data);
+    } catch (caughtError) {
+      setResult(null);
+      setError(getFriendlyErrorMessage(caughtError));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-8 sm:px-8 lg:px-10">
@@ -22,11 +67,11 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid flex-1 items-start gap-10 py-12 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="space-y-8">
             <div className="space-y-5">
               <span className="inline-flex rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
-                Backend is ready. Frontend scaffold is live.
+                Frontend search is connected to the backend API.
               </span>
               <h2 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
                 Pack smarter based on weather, not guesswork.
@@ -36,37 +81,75 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <label htmlFor="location" className="text-sm font-semibold text-slate-700">
-                Destination preview
-              </label>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+            <form onSubmit={handleSubmit} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="grid gap-4">
+                <label htmlFor="location" className="text-sm font-semibold text-slate-700">
+                  Destination
+                </label>
                 <input
                   id="location"
-                  className="min-h-12 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
+                  className="min-h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
+                  onChange={(event) => setLocation(event.target.value)}
                   placeholder="Try London, Paris, Tokyo, or your current location"
+                  required
                   type="text"
-                  disabled
+                  value={location}
                 />
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <label htmlFor="startDate" className="text-sm font-semibold text-slate-700">
+                      Start date
+                    </label>
+                    <input
+                      id="startDate"
+                      className="min-h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
+                      onChange={(event) => setStartDate(event.target.value)}
+                      required
+                      type="date"
+                      value={startDate}
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <label htmlFor="endDate" className="text-sm font-semibold text-slate-700">
+                      End date
+                    </label>
+                    <input
+                      id="endDate"
+                      className="min-h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
+                      onChange={(event) => setEndDate(event.target.value)}
+                      required
+                      type="date"
+                      value={endDate}
+                    />
+                  </div>
+                </div>
+
                 <button
                   className="min-h-12 rounded-2xl bg-brand-600 px-6 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-70"
-                  disabled
-                  type="button"
+                  disabled={isLoading || !location || !startDate || !endDate}
+                  type="submit"
                 >
-                  Search soon
+                  {isLoading ? "Checking weather..." : "Get packing guidance"}
                 </button>
               </div>
-              <p className="mt-3 text-sm text-slate-500">
-                Interactive search arrives in Phase 11. This phase validates the Next.js/Tailwind scaffold and API configuration.
-              </p>
-            </div>
+
+              {error ? (
+                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {error}
+                </div>
+              ) : null}
+            </form>
+
+            {result ? <WeatherResultSummary result={result} /> : <EmptyState />}
           </section>
 
           <aside className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <div>
               <h3 className="text-lg font-bold text-slate-950">Backend capabilities already available</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                The frontend will consume the existing Express API through a configurable API client.
+                The frontend now calls the existing Express API through a configurable API client.
               </p>
             </div>
 
@@ -80,8 +163,8 @@ export default function HomePage() {
             </ul>
 
             <div className="rounded-2xl bg-slate-950 p-5 text-white">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-100">Next</p>
-              <h3 className="mt-2 text-xl font-bold">Phase 11 UI flow</h3>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-100">Phase 11</p>
+              <h3 className="mt-2 text-xl font-bold">Search and results flow</h3>
               <div className="mt-4 flex flex-wrap gap-2">
                 {upcomingUiFeatures.map((feature) => (
                   <span key={feature} className="rounded-full bg-white/10 px-3 py-1 text-sm text-slate-100">
@@ -102,4 +185,100 @@ export default function HomePage() {
       </section>
     </main>
   );
+}
+
+function WeatherResultSummary({ result }: { result: WeatherRequest }) {
+  return (
+    <section className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-700">Saved weather request</p>
+          <h2 className="mt-1 text-2xl font-black text-slate-950">
+            {result.resolvedLocationName}{result.country ? `, ${result.country}` : ""}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {result.startDate} to {result.endDate} · ID {result.id}
+          </p>
+        </div>
+        <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">Saved</span>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MetricCard label="Current temperature" value={formatTemperature(result.currentWeather.temperatureC)} />
+        <MetricCard label="Condition" value={result.currentWeather.condition ?? "Unknown"} />
+        <MetricCard label="Risk level" value={result.weatherProfile.riskLevel} />
+      </div>
+
+      <div className="rounded-2xl bg-slate-50 p-4">
+        <h3 className="font-bold text-slate-950">Weather interpretation</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-600">{result.weatherProfile.summary}</p>
+      </div>
+
+      <div>
+        <h3 className="font-bold text-slate-950">5-day forecast preview</h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {result.forecast.slice(0, 5).map((day) => (
+            <article key={day.date} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm">
+              <p className="font-bold text-slate-950">{day.date}</p>
+              <p className="mt-1 text-slate-600">{day.condition}</p>
+              <p className="mt-2 font-semibold text-slate-900">
+                {formatTemperature(day.minTemperatureC)} / {formatTemperature(day.maxTemperatureC)}
+              </p>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-bold text-slate-950">Packing checklist preview</h3>
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+          {getChecklistPreview(result).map((item) => (
+            <li key={item} className="rounded-2xl bg-brand-50 px-4 py-3 text-sm font-medium text-brand-700">
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function EmptyState() {
+  return (
+    <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-6 text-sm leading-6 text-slate-500">
+      Search a destination to create a saved weather request and preview the current weather, forecast, interpretation, and packing checklist.
+    </section>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <p className="mt-2 text-lg font-black text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function getChecklistPreview(result: WeatherRequest) {
+  return [
+    ...result.packingChecklist.clothing,
+    ...result.packingChecklist.weatherProtection,
+    ...result.packingChecklist.accessories,
+    ...result.packingChecklist.healthAndSafety
+  ].slice(0, 8);
+}
+
+function formatTemperature(value: number | null) {
+  return typeof value === "number" ? `${value}°C` : "--";
+}
+
+function getFriendlyErrorMessage(error: unknown) {
+  const apiError = error as Partial<ApiError>;
+
+  return apiError.error?.message ?? "Could not fetch weather guidance. Check the location and dates, then try again.";
+}
+
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
