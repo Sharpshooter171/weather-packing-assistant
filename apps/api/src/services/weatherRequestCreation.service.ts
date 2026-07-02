@@ -5,13 +5,23 @@ import { getWeatherProviderResult } from "./weatherProvider.service.js";
 
 export type WeatherRequestWorkflowInput = {
   location: string;
+  latitude?: number;
+  longitude?: number;
   startDate: Date;
   endDate: Date;
   useAi: boolean;
 };
 
 export async function buildWeatherRequestPersistenceData(input: WeatherRequestWorkflowInput) {
-  const providerResult = await getWeatherProviderResult(input.location, input.startDate, input.endDate);
+  const providerResult = await getWeatherProviderResult(
+    {
+      location: input.location,
+      ...(input.latitude !== undefined ? { latitude: input.latitude } : {}),
+      ...(input.longitude !== undefined ? { longitude: input.longitude } : {})
+    },
+    input.startDate,
+    input.endDate
+  );
   const deterministicRecommendation = providerResult.deterministicRecommendation;
   const aiStatus = input.useAi ? "fallback_used" : "disabled";
 
