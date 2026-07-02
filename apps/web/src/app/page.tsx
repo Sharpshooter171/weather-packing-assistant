@@ -327,8 +327,11 @@ function WeatherResultSummary({ result }: { result: WeatherRequest }) {
         <h3 className="font-bold text-slate-950">Packing checklist preview</h3>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {getChecklistPreview(result).map((item) => (
-            <li key={item} className="rounded-2xl bg-brand-50 px-4 py-3 text-sm font-medium text-brand-700">
-              {item}
+            <li key={item.label} className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3 text-sm font-medium text-brand-700">
+              <span aria-hidden="true" className="text-xl leading-none">
+                {item.icon}
+              </span>
+              <span>{item.label}</span>
             </li>
           ))}
         </ul>
@@ -365,7 +368,12 @@ function getChecklistPreview(result: WeatherRequest) {
     ...result.packingChecklist.weatherProtection,
     ...result.packingChecklist.accessories,
     ...result.packingChecklist.healthAndSafety
-  ].slice(0, 8);
+  ]
+    .slice(0, 8)
+    .map((label) => ({
+      label,
+      icon: getPackingItemIcon(label)
+    }));
 }
 
 function buildLocationInput(city: string, countryOrRegion: string) {
@@ -439,6 +447,30 @@ function getWeatherIcon(condition: string | null) {
   if (normalizedCondition.includes("cloud")) return "☁️";
 
   return "🌤️";
+}
+
+function getPackingItemIcon(item: string) {
+  const normalizedItem = item.toLowerCase();
+
+  if (normalizedItem.includes("umbrella")) return "☂️";
+  if (normalizedItem.includes("waterproof") || normalizedItem.includes("rain")) return "🧥";
+  if (normalizedItem.includes("shoe") || normalizedItem.includes("boot")) return "🥾";
+  if (normalizedItem.includes("sock")) return "🧦";
+  if (normalizedItem.includes("sunscreen")) return "🧴";
+  if (normalizedItem.includes("sunglasses")) return "🕶️";
+  if (normalizedItem.includes("hat") || normalizedItem.includes("cap")) return "🧢";
+  if (normalizedItem.includes("water bottle")) return "💧";
+  if (normalizedItem.includes("coat")) return "🧥";
+  if (normalizedItem.includes("jacket") || normalizedItem.includes("windbreaker")) return "🧥";
+  if (normalizedItem.includes("sweater") || normalizedItem.includes("hoodie")) return "👕";
+  if (normalizedItem.includes("shirt") || normalizedItem.includes("base layer")) return "👕";
+  if (normalizedItem.includes("pants") || normalizedItem.includes("trousers")) return "👖";
+  if (normalizedItem.includes("glove")) return "🧤";
+  if (normalizedItem.includes("scarf")) return "🧣";
+  if (normalizedItem.includes("layer")) return "🧳";
+  if (normalizedItem.includes("bag")) return "🎒";
+
+  return "🎒";
 }
 
 function toDateInputValue(date: Date) {
