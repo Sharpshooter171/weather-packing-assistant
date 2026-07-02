@@ -2,6 +2,7 @@ import type { ResolvedLocation } from "../types/weatherProvider.types.js";
 import { buildDeterministicWeatherRecommendation } from "./deterministicWeatherEngine.js";
 import { fetchForecast } from "./openMeteoForecast.service.js";
 import { resolveLocation } from "./openMeteoGeocoding.service.js";
+import { reverseGeocodeCoordinates } from "./reverseGeocoding.service.js";
 import {
   buildCurrentWeather,
   buildForecastDays,
@@ -15,7 +16,7 @@ export type WeatherProviderInput = {
 };
 
 export async function getWeatherProviderResult(input: WeatherProviderInput, startDate: Date, endDate: Date) {
-  const location = hasCoordinates(input) ? buildCoordinatesLocation(input) : await resolveLocation(input.location);
+  const location = hasCoordinates(input) ? await buildCoordinatesLocation(input) : await resolveLocation(input.location);
   const rawProviderResponse = await fetchForecast(location, startDate, endDate);
   const currentWeather = buildCurrentWeather(rawProviderResponse);
   const forecast = buildForecastDays(rawProviderResponse);
@@ -36,12 +37,14 @@ function hasCoordinates(input: WeatherProviderInput): input is WeatherProviderIn
   return typeof input.latitude === "number" && typeof input.longitude === "number";
 }
 
-function buildCoordinatesLocation(input: WeatherProviderInput & { latitude: number; longitude: number }): ResolvedLocation {
+async function buildCoordinatesLocation(input: WeatherProviderInput & { latitude: number; longitude: number }): Promise<ResolvedLocation> {
+  const reverseGeocodedLocation = await reverseGeocodeCoordinates(input.latitude, input.longitude);
+
   return {
     locationInput: input.location,
-    name: input.location || "Current location",
-    country: null,
-    admin1: null,
+    name: reverseGeocodedLocation?.name ?? input.location ?? "Current location",
+    country: reverseGeocodedLocation?.country ?? null,
+    admin1: reverseGeocodedLocation?.admin1 ?? null,
     latitude: input.latitude,
     longitude: input.longitude,
     timezone: "auto"
