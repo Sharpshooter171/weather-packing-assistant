@@ -19,7 +19,7 @@ The app also answers:
 
 > What should I pack for this weather?
 
-The project includes a Next.js frontend, an Express/TypeScript backend, Open-Meteo weather and geocoding APIs, SQLite persistence through Prisma, CRUD routes, CSV/JSON export routes, and a deterministic weather-to-packing recommendation engine.
+The project includes a Next.js frontend, an Express/TypeScript backend, Open-Meteo weather and geocoding APIs, SQLite persistence through Prisma, CRUD routes, CSV/JSON export routes, browser current-location support, and a deterministic weather-to-packing recommendation engine.
 
 ---
 
@@ -40,9 +40,10 @@ Product Manager Accelerator helps professionals grow in product management by de
 - Candidate and PM Accelerator information visible in the UI
 - Weather search form
 - City + country/region input to reduce ambiguous location matches
+- Browser current-location button using `navigator.geolocation`
 - Date range input
 - Loading state while weather data is being fetched
-- Friendly error message for invalid or unresolved locations
+- Friendly error message for invalid locations, unresolved locations, or denied geolocation permission
 - Current weather summary
 - 5-day forecast preview
 - Weather interpretation card
@@ -60,6 +61,7 @@ Product Manager Accelerator helps professionals grow in product management by de
 - SQLite database persistence with Prisma
 - Date range validation
 - Location validation using Open-Meteo Geocoding API
+- Coordinate-based current-location weather lookup
 - Weather data retrieval using Open-Meteo Forecast API
 - Weather normalization and rule-based interpretation
 - Deterministic packing checklist generation
@@ -93,6 +95,7 @@ Product Manager Accelerator helps professionals grow in product management by de
 
 - Open-Meteo Geocoding API
 - Open-Meteo Forecast API
+- Browser Geolocation API
 
 ### Export Formats
 
@@ -104,11 +107,11 @@ Product Manager Accelerator helps professionals grow in product management by de
 ## Application Flow
 
 ```text
-1. User enters city, country/region, start date, and end date.
-2. Frontend validates required fields.
+1. User enters city, country/region, start date, and end date, or clicks "Use my current location".
+2. Frontend validates required fields or requests browser geolocation permission.
 3. Frontend submits POST /api/weather-requests.
 4. Backend validates the request body and date range.
-5. Backend resolves the location using the geocoding API.
+5. Backend resolves typed locations through geocoding or uses provided latitude/longitude directly.
 6. Backend retrieves weather data from the forecast API.
 7. Backend normalizes weather data.
 8. Backend detects weather scenarios such as rain, snow, cold, high UV, wind, storms, or mixed conditions.
@@ -128,7 +131,7 @@ Product Manager Accelerator helps professionals grow in product management by de
 GET /api/health
 ```
 
-### Create Weather Request
+### Create Weather Request by Location
 
 ```http
 POST /api/weather-requests
@@ -139,6 +142,25 @@ Example request:
 ```json
 {
   "location": "London, United Kingdom",
+  "startDate": "2026-07-02",
+  "endDate": "2026-07-06",
+  "useAi": false
+}
+```
+
+### Create Weather Request by Coordinates
+
+```http
+POST /api/weather-requests
+```
+
+Example request:
+
+```json
+{
+  "location": "Current location",
+  "latitude": -23.55,
+  "longitude": -46.63,
   "startDate": "2026-07-02",
   "endDate": "2026-07-06",
   "useAi": false
@@ -266,12 +288,13 @@ npm run clean:local
    - Country or region: `United Kingdom`
    - Date range: 5 days
 5. Show current weather, forecast, weather interpretation, condition icons, and packing checklist.
-6. Search another location, for example:
+6. Click `Use my current location`, allow browser permission, and show the coordinate-based result.
+7. Search another location, for example:
    - City: `Cerro de Pasco`
    - Country or region: `Peru`
-7. Show that the recommendation changes based on cold/rain/snow risk.
-8. Show an invalid location to demonstrate friendly error handling.
-9. Demonstrate backend persistence and export routes with curl.
+8. Show that the recommendation changes based on cold/rain/snow risk.
+9. Show an invalid location to demonstrate friendly error handling.
+10. Demonstrate backend persistence and export routes with curl.
 
 ---
 
@@ -283,12 +306,20 @@ npm run clean:local
 curl http://localhost:4000/api/health
 ```
 
-### Create
+### Create by Location
 
 ```bash
 curl -s http://localhost:4000/api/weather-requests \
   -H "Content-Type: application/json" \
   -d '{"location":"London, United Kingdom","startDate":"2026-07-02","endDate":"2026-07-06","useAi":false}' | jq
+```
+
+### Create by Coordinates
+
+```bash
+curl -s http://localhost:4000/api/weather-requests \
+  -H "Content-Type: application/json" \
+  -d '{"location":"Current location","latitude":-23.55,"longitude":-46.63,"startDate":"2026-07-02","endDate":"2026-07-06","useAi":false}' | jq
 ```
 
 ### List
@@ -318,6 +349,7 @@ curl -L http://localhost:4000/api/weather-requests/export.csv -o weather-request
 | Requirement | Status |
 |---|---|
 | User can enter a location | Done |
+| Browser current-location weather | Done |
 | Current weather display | Done |
 | Useful weather details | Done |
 | 5-day forecast | Done |
@@ -326,7 +358,6 @@ curl -L http://localhost:4000/api/weather-requests/export.csv -o weather-request
 | PM Accelerator information visible | Done |
 | Candidate name visible | Done |
 | Weather icons/images | Done with lightweight emoji icons |
-| Browser current-location button | Not included in MVP |
 
 ### Tech Assessment #2 — Backend
 
@@ -335,6 +366,7 @@ curl -L http://localhost:4000/api/weather-requests/export.csv -o weather-request
 | RESTful API | Done |
 | External weather API integration | Done |
 | External geocoding API integration | Done |
+| Coordinate-based weather lookup | Done |
 | CREATE operation | Done |
 | READ operation | Done |
 | UPDATE operation | Done |
@@ -351,9 +383,9 @@ curl -L http://localhost:4000/api/weather-requests/export.csv -o weather-request
 
 - The MVP focuses on reliable full-stack behavior over visual polish.
 - The packing checklist is generated by deterministic weather rules, which makes the output predictable and testable.
-- The app asks for city plus country/region to reduce ambiguous location matches.
-- Browser geolocation was left out of the MVP to prioritize CRUD, persistence, API integration, export, and full-stack functionality.
-- A future version could add browser geolocation, location autocomplete, maps, and AI-generated narrative recommendations.
+- The app asks for city plus country/region to reduce ambiguous typed location matches.
+- Browser current-location lookup uses latitude/longitude directly and does not require a database migration.
+- A future version could add location autocomplete, maps, and AI-generated narrative recommendations.
 
 ---
 
