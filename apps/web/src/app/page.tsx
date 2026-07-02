@@ -23,6 +23,7 @@ export default function HomePage() {
   const [result, setResult] = useState<WeatherRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
     const today = new Date();
@@ -63,7 +64,43 @@ export default function HomePage() {
     }
   }
 
-  const canSubmit = Boolean(city.trim() && countryOrRegion.trim() && startDate && endDate && !isLoading);
+  async function handleUseCurrentLocation() {
+    setError(null);
+
+    if (!startDate || !endDate) {
+      setError("Choose a date range before using your current location.");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setError("Browser geolocation is not available. Please enter a city and country manually.");
+      return;
+    }
+
+    setIsLocating(true);
+
+    try {
+      const position = await getCurrentBrowserPosition();
+      const response = await createWeatherRequest({
+        location: "Current location",
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        startDate,
+        endDate,
+        useAi: false
+      });
+
+      setResult(response.data);
+    } catch (caughtError) {
+      setResult(null);
+      setError(getCurrentLocationErrorMessage(caughtError));
+    } finally {
+      setIsLocating(false);
+    }
+  }
+
+  const canSubmit = Boolean(city.trim() && countryOrRegion.trim() && startDate && endDate && !isLoading && !isLocating);
+  const canUseCurrentLocation = Boolean(startDate && endDate && !isLoading && !isLocating);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
@@ -88,7 +125,7 @@ export default function HomePage() {
                 Pack smarter based on weather, not guesswork.
               </h2>
               <p className="max-w-2xl text-lg leading-8 text-slate-600">
-                Search a destination with city and country, review current weather and forecast data, then receive a practical packing checklist generated from weather rules and optional AI assistance.
+                Search a destination with city and country, or use your current browser location, then receive weather-based packing guidance.
               </p>
             </div>
 
@@ -160,13 +197,24 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <button
-                  className="min-h-12 rounded-2xl bg-brand-600 px-6 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-70"
-                  disabled={!canSubmit}
-                  type="submit"
-                >
-                  {isLoading ? "Checking weather..." : "Get packing guidance"}
-                </button>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    className="min-h-12 rounded-2xl bg-brand-600 px-6 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={!canSubmit}
+                    type="submit"
+                  >
+                    {isLoading ? "Checking weather..." : "Get packing guidance"}
+                  </button>
+
+                  <button
+                    className="min-h-12 rounded-2xl border border-brand-200 bg-white px-6 font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={!canUseCurrentLocation}
+                    onClick={handleUseCurrentLocation}
+                    type="button"
+                  >
+                    {isLocating ? "Getting your location..." : "Use my current location"}
+                  </button>
+                </div>
               </div>
 
               {error ? (
@@ -292,7 +340,7 @@ function WeatherResultSummary({ result }: { result: WeatherRequest }) {
 function EmptyState() {
   return (
     <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-6 text-sm leading-6 text-slate-500">
-      Search a destination to create a saved weather request and preview the current weather, forecast, interpretation, and packing checklist.
+      Search a destination or use your current location to create a saved weather request and preview the current weather, forecast, interpretation, and packing checklist.
     </section>
   );
 }
@@ -333,10 +381,42 @@ function formatTemperature(value: number | null) {
   return typeof value === "number" ? `${value}°C` : "--";
 }
 
+function getCurrentBrowserPosition() {
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: false,
+      maximumAge: 300_000,
+      timeout: 10_000
+    });
+  });
+}
+
 function getFriendlyErrorMessage(error: unknown) {
   const apiError = error as Partial<ApiError>;
 
   return apiError.error?.message ?? "Could not fetch weather guidance. Check the location and dates, then try again.";
+}
+
+function getCurrentLocationErrorMessage(error: unknown) {
+  if (isGeolocationPositionError(error)) {
+    if (error.code === error.PERMISSION_DENIED) {
+      return "Location permission was denied. Please allow location access or enter a city manually.";
+    }
+
+    if (error.code === error.POSITION_UNAVAILABLE) {
+      return "Your current location is unavailable. Please enter a city manually.";
+    }
+
+    if (error.code === error.TIMEOUT) {
+      return "Getting your current location took too long. Please try again or enter a city manually.";
+    }
+  }
+
+  return getFriendlyErrorMessage(error);
+}
+
+function isGeolocationPositionError(error: unknown): error is GeolocationPositionError {
+  return typeof error === "object" && error !== null && "code" in error && "message" in error;
 }
 
 function getRiskIcon(riskLevel: RiskLevel) {
