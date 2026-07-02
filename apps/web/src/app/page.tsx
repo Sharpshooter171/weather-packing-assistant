@@ -16,7 +16,8 @@ const backendFeatures = [
 const upcomingUiFeatures = ["Location search", "Current weather card", "5-day forecast", "Packing checklist"];
 
 export default function HomePage() {
-  const [location, setLocation] = useState("London");
+  const [city, setCity] = useState("London");
+  const [countryOrRegion, setCountryOrRegion] = useState("United Kingdom");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [result, setResult] = useState<WeatherRequest | null>(null);
@@ -35,11 +36,19 @@ export default function HomePage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    const normalizedLocation = buildLocationInput(city, countryOrRegion);
+
+    if (!normalizedLocation) {
+      setError("Enter both city and country or region to avoid ambiguous weather results.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await createWeatherRequest({
-        location,
+        location: normalizedLocation,
         startDate,
         endDate,
         useAi: false
@@ -53,6 +62,8 @@ export default function HomePage() {
       setIsLoading(false);
     }
   }
+
+  const canSubmit = Boolean(city.trim() && countryOrRegion.trim() && startDate && endDate && !isLoading);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
@@ -77,24 +88,47 @@ export default function HomePage() {
                 Pack smarter based on weather, not guesswork.
               </h2>
               <p className="max-w-2xl text-lg leading-8 text-slate-600">
-                Search a destination, review current weather and forecast data, then receive a practical packing checklist generated from weather rules and optional AI assistance.
+                Search a destination with city and country, review current weather and forecast data, then receive a practical packing checklist generated from weather rules and optional AI assistance.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="grid gap-4">
-                <label htmlFor="location" className="text-sm font-semibold text-slate-700">
-                  Destination
-                </label>
-                <input
-                  id="location"
-                  className="min-h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
-                  onChange={(event) => setLocation(event.target.value)}
-                  placeholder="Try London, Paris, Tokyo, or your current location"
-                  required
-                  type="text"
-                  value={location}
-                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <label htmlFor="city" className="text-sm font-semibold text-slate-700">
+                      City
+                    </label>
+                    <input
+                      id="city"
+                      className="min-h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
+                      onChange={(event) => setCity(event.target.value)}
+                      placeholder="London, Brasília, El Alto"
+                      required
+                      type="text"
+                      value={city}
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <label htmlFor="countryOrRegion" className="text-sm font-semibold text-slate-700">
+                      Country or region
+                    </label>
+                    <input
+                      id="countryOrRegion"
+                      className="min-h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100"
+                      onChange={(event) => setCountryOrRegion(event.target.value)}
+                      placeholder="United Kingdom, Brazil, Bolivia"
+                      required
+                      type="text"
+                      value={countryOrRegion}
+                    />
+                  </div>
+                </div>
+
+                <p className="rounded-2xl bg-brand-50 px-4 py-3 text-sm text-brand-700">
+                  Use city + country or region to avoid ambiguous matches like cities with the same name in different countries.
+                </p>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="grid gap-2">
@@ -128,7 +162,7 @@ export default function HomePage() {
 
                 <button
                   className="min-h-12 rounded-2xl bg-brand-600 px-6 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-70"
-                  disabled={isLoading || !location || !startDate || !endDate}
+                  disabled={!canSubmit}
                   type="submit"
                 >
                   {isLoading ? "Checking weather..." : "Get packing guidance"}
@@ -267,6 +301,15 @@ function getChecklistPreview(result: WeatherRequest) {
     ...result.packingChecklist.accessories,
     ...result.packingChecklist.healthAndSafety
   ].slice(0, 8);
+}
+
+function buildLocationInput(city: string, countryOrRegion: string) {
+  const trimmedCity = city.trim();
+  const trimmedCountryOrRegion = countryOrRegion.trim();
+
+  if (!trimmedCity || !trimmedCountryOrRegion) return "";
+
+  return `${trimmedCity}, ${trimmedCountryOrRegion}`;
 }
 
 function formatTemperature(value: number | null) {
