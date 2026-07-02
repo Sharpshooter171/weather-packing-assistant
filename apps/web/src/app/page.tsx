@@ -3,7 +3,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 
 import { createWeatherRequest } from "../services/apiClient";
-import type { ApiError, WeatherRequest } from "../types/weather";
+import type { ApiError, RiskLevel, WeatherRequest } from "../types/weather";
 
 const backendFeatures = [
   "Weather API integration",
@@ -222,14 +222,21 @@ export default function HomePage() {
 }
 
 function WeatherResultSummary({ result }: { result: WeatherRequest }) {
+  const currentWeatherIcon = getWeatherIcon(result.currentWeather.condition);
+
   return (
     <section className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-700">Saved weather request</p>
-          <h2 className="mt-1 text-2xl font-black text-slate-950">
-            {result.resolvedLocationName}{result.country ? `, ${result.country}` : ""}
-          </h2>
+          <div className="mt-1 flex items-center gap-3">
+            <span aria-hidden="true" className="text-3xl">
+              {currentWeatherIcon}
+            </span>
+            <h2 className="text-2xl font-black text-slate-950">
+              {result.resolvedLocationName}{result.country ? `, ${result.country}` : ""}
+            </h2>
+          </div>
           <p className="mt-1 text-sm text-slate-500">
             {result.startDate} to {result.endDate} · ID {result.id}
           </p>
@@ -238,9 +245,9 @@ function WeatherResultSummary({ result }: { result: WeatherRequest }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <MetricCard label="Current temperature" value={formatTemperature(result.currentWeather.temperatureC)} />
-        <MetricCard label="Condition" value={result.currentWeather.condition ?? "Unknown"} />
-        <MetricCard label="Risk level" value={result.weatherProfile.riskLevel} />
+        <MetricCard icon="🌡️" label="Current temperature" value={formatTemperature(result.currentWeather.temperatureC)} />
+        <MetricCard icon={currentWeatherIcon} label="Condition" value={result.currentWeather.condition ?? "Unknown"} />
+        <MetricCard icon={getRiskIcon(result.weatherProfile.riskLevel)} label="Risk level" value={result.weatherProfile.riskLevel} />
       </div>
 
       <div className="rounded-2xl bg-slate-50 p-4">
@@ -253,7 +260,12 @@ function WeatherResultSummary({ result }: { result: WeatherRequest }) {
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {result.forecast.slice(0, 5).map((day) => (
             <article key={day.date} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm">
-              <p className="font-bold text-slate-950">{day.date}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-bold text-slate-950">{day.date}</p>
+                <span aria-hidden="true" className="text-2xl leading-none">
+                  {getWeatherIcon(day.condition)}
+                </span>
+              </div>
               <p className="mt-1 text-slate-600">{day.condition}</p>
               <p className="mt-2 font-semibold text-slate-900">
                 {formatTemperature(day.minTemperatureC)} / {formatTemperature(day.maxTemperatureC)}
@@ -285,10 +297,15 @@ function EmptyState() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function MetricCard({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+        <span aria-hidden="true" className="text-2xl leading-none">
+          {icon}
+        </span>
+      </div>
       <p className="mt-2 text-lg font-black text-slate-950">{value}</p>
     </div>
   );
@@ -320,6 +337,28 @@ function getFriendlyErrorMessage(error: unknown) {
   const apiError = error as Partial<ApiError>;
 
   return apiError.error?.message ?? "Could not fetch weather guidance. Check the location and dates, then try again.";
+}
+
+function getRiskIcon(riskLevel: RiskLevel) {
+  if (riskLevel === "high") return "⚠️";
+  if (riskLevel === "moderate") return "🟡";
+
+  return "🟢";
+}
+
+function getWeatherIcon(condition: string | null) {
+  const normalizedCondition = condition?.toLowerCase() ?? "";
+
+  if (normalizedCondition.includes("thunderstorm") || normalizedCondition.includes("storm")) return "⛈️";
+  if (normalizedCondition.includes("snow")) return "❄️";
+  if (normalizedCondition.includes("rain") || normalizedCondition.includes("drizzle")) return "🌧️";
+  if (normalizedCondition.includes("fog") || normalizedCondition.includes("mist")) return "🌫️";
+  if (normalizedCondition.includes("wind")) return "💨";
+  if (normalizedCondition.includes("clear")) return "☀️";
+  if (normalizedCondition.includes("partly")) return "⛅";
+  if (normalizedCondition.includes("cloud")) return "☁️";
+
+  return "🌤️";
 }
 
 function toDateInputValue(date: Date) {
