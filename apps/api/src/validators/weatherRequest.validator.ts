@@ -2,6 +2,8 @@ import { AppError } from "../errors/AppError.js";
 
 export type WeatherRequestInput = {
   location?: unknown;
+  latitude?: unknown;
+  longitude?: unknown;
   startDate?: unknown;
   endDate?: unknown;
   useAi?: unknown;
@@ -9,6 +11,8 @@ export type WeatherRequestInput = {
 
 export type ValidatedWeatherRequestInput = {
   location: string;
+  latitude?: number;
+  longitude?: number;
   startDate: Date;
   endDate: Date;
   useAi: boolean;
@@ -24,15 +28,27 @@ export function validateWeatherRequestInput(input: WeatherRequestInput): Validat
     throw new AppError("INVALID_REQUEST_BODY", "Request body must be a JSON object.");
   }
 
-  const location = validateLocation(input.location);
+  const latitude = validateOptionalCoordinate("latitude", input.latitude, -90, 90);
+  const longitude = validateOptionalCoordinate("longitude", input.longitude, -180, 180);
+  const hasCoordinates = latitude !== undefined || longitude !== undefined;
+  const location = hasCoordinates ? validateCoordinateLocation(input.location) : validateLocation(input.location);
   const startDate = validateDateField("startDate", input.startDate);
   const endDate = validateDateField("endDate", input.endDate);
   const useAi = validateUseAi(input.useAi);
+
+  if (hasCoordinates && (latitude === undefined || longitude === undefined)) {
+    throw new AppError("INVALID_COORDINATES", "latitude and longitude must be provided together.", 400, {
+      latitudeProvided: latitude !== undefined,
+      longitudeProvided: longitude !== undefined
+    });
+  }
 
   validateDateRange(startDate, endDate);
 
   return {
     location,
+    ...(latitude !== undefined ? { latitude } : {}),
+    ...(longitude !== undefined ? { longitude } : {}),
     startDate,
     endDate,
     useAi
@@ -68,6 +84,30 @@ function validateLocation(value: unknown): string {
   }
 
   return location;
+}
+
+function validateCoordinateLocation(value: unknown): string {
+  if (value === undefined || value === null || value === "") {
+    return "Current location";
+  }
+
+  return validateLocation(value);
+}
+
+function validateOptionalCoordinate(field: "latitude" | "longitude", value: unknown, min: number, max: number) {
+  if (value === undefined || value === null || value === "") return undefined;
+
+  const parsed = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
+    throw new AppError("INVALID_COORDINATES", `${field} must be a number between ${min} and ${max}.`, 400, {
+      field,
+      min,
+      max
+    });
+  }
+
+  return parsed;
 }
 
 function validateDateField(field: "startDate" | "endDate", value: unknown): Date {
