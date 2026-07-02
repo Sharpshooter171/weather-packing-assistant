@@ -6,6 +6,7 @@ import { fetchJson } from "../utils/fetchJson.js";
 type OpenMeteoGeocodingResult = {
   name?: string;
   country?: string;
+  country_code?: string;
   admin1?: string;
   latitude?: number;
   longitude?: number;
@@ -16,20 +17,30 @@ type OpenMeteoGeocodingResponse = {
   results?: OpenMeteoGeocodingResult[];
 };
 
+const GEOCODING_RESULT_COUNT = "50";
+
+const COUNTRY_HINT_ALIASES: Record<string, string[]> = {
+  bolivia: ["bolivia", "bolivia plurinational state of", "bo"],
+  brasil: ["brazil", "brasil", "br"],
+  brazil: ["brazil", "brasil", "br"],
+  peru: ["peru", "pe"],
+  uk: ["united kingdom", "uk", "gb", "great britain"],
+  "united kingdom": ["united kingdom", "uk", "gb", "great britain"],
+  usa: ["united states", "usa", "us", "united states of america"],
+  "united states": ["united states", "usa", "us", "united states of america"]
+};
+
 export async function resolveLocation(locationInput: string): Promise<ResolvedLocation> {
   const locationQuery = parseLocationQuery(locationInput);
-  const url = new URL(`${weatherProviderConfig.geocodingBaseUrl}/search`);
-  url.searchParams.set("name", locationQuery.city);
-  url.searchParams.set("count", "10");
-  url.searchParams.set("language", "en");
-  url.searchParams.set("format", "json");
-
-  const response = (await fetchJson(url, weatherProviderConfig.requestTimeoutMs)) as OpenMeteoGeocodingResponse;
+  const response = await fetchGeocodingResults(locationQuery.city);
   const selectedResult = selectBestLocationMatch(response.results, locationQuery.countryOrRegion);
 
   if (!selectedResult || typeof selectedResult.latitude !== "number" || typeof selectedResult.longitude !== "number") {
     throw new AppError("LOCATION_NOT_FOUND", "Location could not be resolved by the weather provider.", 404, {
-      location: locationInput
+      location: locationInput,
+      expectedCountryOrRegion: locationQuery.countryOrRegion,
+      candidateCount: response.results?.length ?? 0,
+      candidates: buildCandidateDebugList(response.results)
     });
   }
 
@@ -42,6 +53,16 @@ export async function resolveLocation(locationInput: string): Promise<ResolvedLo
     longitude: selectedResult.longitude,
     timezone: selectedResult.timezone ?? null
   };
+}
+
+async function fetchGeocodingResults(city: string) {
+  const url = new URL(`${weatherProviderConfig.geocodingBaseUrl}/search`);
+  url.searchParams.set("name", city);
+  url.searchParams.set("count", GEOCODING_RESULT_COUNT);
+  url.searchParams.set("language", "en");
+  url.searchParams.set("format", "json");
+
+  return (await fetchJson(url, weatherProviderConfig.requestTimeoutMs)) as OpenMeteoGeocodingResponse;
 }
 
 function parseLocationQuery(locationInput: string) {
@@ -60,16 +81,37 @@ function selectBestLocationMatch(results: OpenMeteoGeocodingResult[] | undefined
   if (!results?.length) return null;
   if (!countryOrRegion) return results[0];
 
-  const normalizedHint = normalizeLocationToken(countryOrRegion);
+  const acceptableHints = getAcceptableLocationHints(countryOrRegion);
 
   return (
     results.find((result) => {
-      const normalizedCountry = normalizeLocationToken(result.country ?? "");
-      const normalizedRegion = normalizeLocationToken(result.admin1 ?? "");
+      const candidateTokens = [result.country, result.country_code, result.admin1]
+        .filter((value): value is string => Boolean(value))
+        .map(normalizeLocationToken);
 
-      return normalizedCountry === normalizedHint || normalizedRegion === normalizedHint;
+      return candidateTokens.some((candidateToken) =>
+        acceptableHints.some(
+          (hint) => candidateToken === hint || candidateToken.includes(hint) || hint.includes(candidateToken)
+        )
+      );
     }) ?? null
   );
+}
+
+function getAcceptableLocationHints(countryOrRegion: string) {
+  const normalizedHint = normalizeLocationToken(countryOrRegion);
+  const aliases = COUNTRY_HINT_ALIASES[normalizedHint] ?? [];
+
+  return [normalizedHint, ...aliases.map(normalizeLocationToken)];
+}
+
+function buildCandidateDebugList(results: OpenMeteoGeocodingResult[] | undefined) {
+  return (results ?? []).slice(0, 10).map((result) => ({
+    name: result.name ?? null,
+    country: result.country ?? null,
+    countryCode: result.country_code ?? null,
+    admin1: result.admin1 ?? null
+  }));
 }
 
 function normalizeLocationToken(value: string) {
